@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>臨床実習AI評価 OpenAI API コスト試算シミュレーター</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title::before {
+            content: '▶';
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 6px;
+        }
+        
+        .input-group input, .input-group select, .input-group textarea {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: 'Segoe UI', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+        }
+        
+        .input-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .token-display {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+        
+        .model-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .model-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .model-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 13px;
+        }
+        
+        .model-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .model-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .calc-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin: 20px auto;
+            display: block;
+        }
+        
+        .calc-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .calc-button:active {
+            transform: translateY(0);
+        }
+        
+        .download-button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            margin: 10px auto;
+            display: block;
+        }
+        
+        .download-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6);
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .result-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .result-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .result-item-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .result-item-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            color: #333;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .breakdown-table th {
+            background: #764ba2;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .breakdown-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 13px;
+        }
+        
+        .breakdown-table tr:last-child td {
+            border-bottom: none;
+            font-weight: 700;
+            background: #f8f9fa;
+        }
+        
+        .breakdown-table tr.total-row {
+            background: #764ba2 !important;
+            color: white !important;
+            font-weight: 700;
+        }
+        
+        .breakdown-table tr.total-row td {
+            background: #764ba2 !important;
+            color: white !important;
+            border-bottom: none;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #0c5460;
+            margin-top: 15px;
+        }
+        
+        .practice-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border: 2px solid #dee2e6;
+        }
+        
+        .practice-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .prompt-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border: 2px solid #667eea;
+        }
+        
+        .prompt-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 臨床実習AI評価 OpenAI API コスト試算シミュレーター</h1>
+            <p>柔道整復師養成課程 デイリーノート自動評価システム 予算策定ツール ver 3.0</p>
+        </div>
+        
+        <div class="content">
+            <!-- 基本設定 -->
+            <div class="section">
+                <div class="section-title">📊 基本設定</div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>使用モデル</label>
+                        <select id="model" onchange="calculate()">
+                            <option value="gpt-5.2">gpt-5.2</option>
+                            <option value="gpt-5-mini" selected>gpt-5-mini</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>為替レート（円/ドル）</label>
+                        <input type="number" id="exchangeRate" value="155" min="100" max="200" step="0.1">
+                    </div>
+                </div>
+                
+                <table class="model-table">
+                    <thead>
+                        <tr>
+                            <th>モデル</th>
+                            <th>入力単価<br>($/1M tokens)</th>
+                            <th>キャッシュ入力<br>($/1M tokens)</th>
+                            <th>出力単価<br>($/1M tokens)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>gpt-5.2</strong></td>
+                            <td>$1.75</td>
+                            <td>$0.175</td>
+                            <td>$14.00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>gpt-5-mini</strong></td>
+                            <td>$0.25</td>
+                            <td>$0.025</td>
+                            <td>$2.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 評価システム共通設定 -->
+            <div class="section">
+                <div class="section-title">⚙️ 評価システム共通設定</div>
+                
+                <div class="prompt-section">
+                    <h3>システムプロンプト</h3>
+                    <div class="input-group">
+                        <label>システムプロンプト本文</label>
+                        <textarea id="systemPromptText" oninput="updateTokenDisplay()" placeholder="システムプロンプトを入力してください...">あなたは柔道整復師養成課程の臨床実習指導者として、学生のデイリーノートを評価します。以下の観点から評価を行ってください。
+1. 臨床場面の観察力
+2. 安全・衛生管理の理解
+3. 記録の正確性
+4. 補助業務の遂行能力</textarea>
+                        <div class="token-display" id="systemPromptTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="prompt-section">
+                    <h3>評価基準・ルーブリック</h3>
+                    <div class="input-group">
+                        <label>評価基準・ルーブリック本文</label>
+                        <textarea id="rubricText" oninput="updateTokenDisplay()" placeholder="評価基準・ルーブリックを入力してください...">【評価基準】
+0点: 未実施または重大な問題
+1点: 要改善（基準を大きく下回る）
+2点: 一部不足（基準を部分的に満たす）
+3点: 期待通り（基準を満たす）
+4点: 期待以上（基準を大きく上回る）
+
+【評価項目】
+A1: 観察力（現場の流れ/患者状況）
+A2: 安全・衛生（感染対策/物品/環境）
+A3: 記録の基本（匿名化・要点整理）
+A4: 補助行為（監督下での実施）</textarea>
+                        <div class="token-display" id="rubricTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>評価基準キャッシュ利用率（%）</label>
+                        <input type="number" id="cacheRate" value="80" min="0" max="100" step="5">
+                    </div>
+                </div>
+                
+                <div class="note">
+                    <strong>📌 キャッシュについて:</strong> 評価基準やルーブリックは各評価で共通のため、Prompt Cachingを活用すると大幅にコスト削減できます。2回目以降の評価ではキャッシュから読み込まれるため、入力コストが約90%削減されます。
+                </div>
+            </div>
+            
+            <!-- 臨床実習Ⅰ -->
+            <div class="section">
+                <div class="section-title">📝 臨床実習Ⅰ（見学型・導入）</div>
+                <div class="practice-section">
+                    <h3>実習設定</h3>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>履修者数（名）</label>
+                            <input type="number" id="p1_students" value="100" min="0" max="500" oninput="updateTokenDisplay()">
+                        </div>
+                        <div class="input-group">
+                            <label>実習日数</label>
+                            <input type="number" id="p1_days" value="5" min="0" max="100" oninput="updateTokenDisplay()">
+                        </div>
+                        <div class="input-group">
+                            <label>1日あたり提出回数</label>
+                            <input type="number" id="p1_submissions" value="1" min="0" max="10" oninput="updateTokenDisplay()">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="practice-section">
+                    <h3>入力設定（学生デイリーノート）</h3>
+                    <div class="input-group">
+                        <label>デイリーノートサンプル本文（平均的な内容を入力）</label>
+                        <textarea id="p1_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください...">本日は初めて臨床実習施設を訪問しました。指導者の先生から施設の概要と基本的なルールについて説明を受けました。
+患者様への接し方、プライバシー保護の重要性、標準予防策について学びました。
+実際の施術場面を見学し、医療面接から検査、施術までの一連の流れを観察することができました。
+特に印象に残ったのは、患者様とのコミュニケーションの取り方です。指導者の先生は常に患者様の目線に立ち、丁寧な言葉遣いで説明されていました。
+明日からは受付業務や環境整備などの補助業務にも参加させていただく予定です。</textarea>
+                        <div class="token-display" id="p1_inputTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="practice-section">
+                    <h3>出力設定（AIフィードバック）</h3>
+                    <div class="input-group">
+                        <label>AIフィードバックサンプル本文（平均的な出力を入力）</label>
+                        <textarea id="p1_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください...">【評価】
+A1: 観察力 3点 - 施術の流れを適切に観察できています
+A2: 安全・衛生 3点 - 標準予防策の重要性を理解しています
+A3: 記録 3点 - 見学内容を適切に記録できています
+
+【良い点】
+・初日から積極的に学ぼうとする姿勢が見られます
+・患者様とのコミュニケーションに注目できています
+
+【改善点】
+・具体的な検査内容についても記録すると良いでしょう
+・次回は自分の課題を明確にしてみましょう</textarea>
+                        <div class="token-display" id="p1_outputTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <strong>総評価件数:</strong> <span id="p1_totalEvals">0</span> 件
+                </div>
+            </div>
+            
+            <!-- 臨床実習Ⅱ -->
+            <div class="section">
+                <div class="section-title">📝 臨床実習Ⅱ（参加型・基礎）</div>
+                <div class="practice-section">
+                    <h3>実習設定</h3>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>履修者数（名）</label>
+                            <input type="number" id="p2_students" value="100" min="0" max="500" oninput="updateTokenDisplay()">
+                        </div>
+                        <div class="input-group">
+                            <label>実習日数</label>
+                            <input type="number" id="p2_days" value="15" min="0" max="100" oninput="updateTokenDisplay()">
+                        </div>
+                        <div class="input-group">
+                            <label>1日あたり提出回数</label>
+                            <input type="number" id="p2_submissions" value="1" min="0" max="10" oninput="updateTokenDisplay()">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="practice-section">
+                    <h3>入力設定（学生デイリーノート）</h3>
+                    <div class="input-group">
+                        <label>デイリーノートサンプル本文（平均的な内容を入力）</label>
+                        <textarea id="p2_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください...">本日は指導者の監督下で、初めて患者様に対してROM測定を実施しました。
+患者様は右肩関節の疼痛を訴えており、屈曲・外転の可動域制限が認められました。
+測定結果：屈曲120度、外転90度、外旋30度
+指導者の先生からは、測定時の患者様への声かけと、ゼロポジションの確認について指導を受けました。
+また、SOAP形式での記録方法についても学びました。
+S: 右肩の痛みが続いている
+O: 屈曲120度、外転90度、圧痛あり
+A: 肩関節周囲炎の疑い
+P: 温熱療法と可動域訓練を継続
+明日は物理療法の補助業務に参加する予定です。</textarea>
+                        <div class="token-display" id="p2_inputTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="practice-section">
+                    <h3>出力設定（AIフィードバック）</h3>
+                    <div class="input-group">
+                        <label>AIフィードバックサンプル本文（平均的な出力を入力）</label>
+                        <textarea id="p2_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください...">【評価】
+B1: 基本検査の実施 4点 - ROM測定を正確に実施できています
+B2: 情報の記録 4点 - SOAP形式で適切に記録できています
+B3: 患者対応 3点 - 患者様への配慮が見られます
+
+【優れている点】
+・具体的な測定値を正確に記録できています
+・SOAP形式を理解し、適切に活用できています
+・指導内容を素直に受け止め、改善しようとしています
+
+【更なる向上のために】
+・測定時の患者様の表情や反応も記録すると良いでしょう
+・可動域制限の原因について考察を加えてみましょう
+・次回は徒手筋力検査にも挑戦してみましょう</textarea>
+                        <div class="token-display" id="p2_outputTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <strong>総評価件数:</strong> <span id="p2_totalEvals">0</span> 件
+                </div>
+            </div>
+            
+            <!-- 臨床実習Ⅲ -->
+            <div class="section">
+                <div class="section-title">📝 臨床実習Ⅲ（参加型・応用）</div>
+                <div class="practice-section">
+                    <h3>実習設定</h3>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>履修者数（名）</label>
+                            <input type="number" id="p3_students" value="100" min="0" max="500" oninput="updateTokenDisplay()">
+                        </div>
+                        <div class="input-group">
+                            <label>実習日数</label>
+                            <input type="number" id="p3_days" value="15" min="0" max="100" oninput="updateTokenDisplay()">
+                        </div>
+                        <div class="input-group">
+                            <label>1日あたり提出回数</label>
+                            <input type="number" id="p3_submissions" value="1" min="0" max="10" oninput="updateTokenDisplay()">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="practice-section">
+                    <h3>入力設定（学生デイリーノート）</h3>
+                    <div class="input-group">
+                        <label>デイリーノートサンプル本文（平均的な内容を入力）</label>
+                        <textarea id="p3_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください...">本日は新患の患者様に対して、医療面接から検査、施術計画の立案まで一連のプロセスを実践しました。
+
+【症例概要】
+20代男性、バスケットボール中に右足関節を内反捻挫
+受傷後2日目、腫脹・圧痛・可動域制限あり
+
+【医療面接】
+受傷機転、疼痛の程度、既往歴等を聴取
+レッドフラッグのスクリーニングを実施→陰性
+
+【検査所見】
+視診：外果周囲の腫脹、皮下出血あり
+触診：前距腓靱帯部に圧痛++
+ROM：背屈制限あり（健側15度、患側5度）
+特殊検査：前方引き出しテスト陽性
+
+【超音波観察】
+前距腓靱帯に低エコー域を認め、部分断裂が疑われる
+
+【臨床推論】
+右足関節内反捻挫（前距腓靱帯損傷Ⅱ度）
+骨折は否定的
+
+【施術計画】
+1. 固定：テーピング固定
+2. 物理療法：アイシング、超音波治療
+3. 後療法：段階的な可動域訓練
+4. 経過観察：1週間後に再評価
+
+指導者の先生からは、患者様への説明が丁寧であったと評価していただきました。
+一方で、施術計画について、より具体的な期間設定と目標設定が必要とのご指摘を受けました。</textarea>
+                        <div class="token-display" id="p3_inputTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="practice-section">
+                    <h3>出力設定（AIフィードバック）</h3>
+                    <div class="input-group">
+                        <label>AIフィードバックサンプル本文（平均的な出力を入力）</label>
+                        <textarea id="p3_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください...">【評価】
+C1: 医療面接の実践 4点 - 必要な情報を適切に聴取できています
+C2: 超音波観察の活用 4点 - 超音波所見を適切に評価できています
+C3: 臨床推論と判断 4点 - 論理的に鑑別診断を行えています
+C4: 施術計画の立案 3点 - 基本的な計画は立案できていますが、より具体性が必要です
+
+【優れている点】
+・系統的な問診と検査を実施できています
+・レッドフラッグのスクリーニングを適切に行えています
+・超音波所見と身体所見を統合して評価できています
+・臨床推論のプロセスが論理的で明確です
+
+【更なる向上のために】
+・施術計画に具体的な期間（2週間、4週間等）と機能目標を設定しましょう
+・患者様の競技復帰時期についても考慮した計画が必要です
+・経過不良時の対応（医師紹介の基準等）も計画に含めましょう
+・ホームエクササイズの具体的な内容も記載すると良いでしょう
+
+【次回への課題】
+・より複雑な症例に対しても同様のプロセスで対応できるよう練習しましょう
+・鑑別診断の幅を広げるため、類似症例の文献を調べてみましょう</textarea>
+                        <div class="token-display" id="p3_outputTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <strong>総評価件数:</strong> <span id="p3_totalEvals">0</span> 件
+                </div>
+            </div>
+            
+            <!-- 臨地実習 -->
+            <div class="section">
+                <div class="section-title">📝 臨地実習（Ⅳ）（多職種連携）</div>
+                <div class="practice-section">
+                    <h3>実習設定</h3>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>履修者数（名）</label>
+                            <input type="number" id="p4_students" value="100" min="0" max="500" oninput="updateTokenDisplay()">
+                        </div>
+                        <div class="input-group">
+                            <label>実習日数</label>
+                            <input type="number" id="p4_days" value="5" min="0" max="100" oninput="updateTokenDisplay()">
+                        </div>
+                        <div class="input-group">
+                            <label>1日あたり提出回数</label>
+                            <input type="number" id="p4_submissions" value="1" min="0" max="10" oninput="updateTokenDisplay()">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="practice-section">
+                    <h3>入力設定（学生デイリーノート）</h3>
+                    <div class="input-group">
+                        <label>デイリーノートサンプル本文（平均的な内容を入力）</label>
+                        <textarea id="p4_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください...">本日は整形外科クリニックでの臨地実習でした。
+医師、看護師、理学療法士の先生方と共に、チーム医療の現場を体験しました。
+
+【参加した業務】
+・外来診療の見学
+・リハビリテーション室での機能訓練観察
+・カンファレンスへの参加
+
+【学んだこと】
+1. 多職種連携の重要性
+医師の診断に基づき、理学療法士がリハビリプログラムを立案し、看護師が患者様の状態を継続的に観察するという、それぞれの専門性を活かした連携を見ることができました。
+
+2. 柔道整復師の役割
+カンファレンスで、柔道整復師が運動器疾患の保存療法において重要な役割を担えることを実感しました。
+特に、固定技術や物理療法の知識は、チーム医療の中でも貢献できる領域だと感じました。
+
+3. 専門用語の重要性
+各職種が共通の医学用語を使用することで、円滑なコミュニケーションが図られていました。
+
+【今後の課題】
+他職種の専門性をより深く理解し、柔道整復師としてどのように貢献できるかを考えていきたいです。</textarea>
+                        <div class="token-display" id="p4_inputTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="practice-section">
+                    <h3>出力設定（AIフィードバック）</h3>
+                    <div class="input-group">
+                        <label>AIフィードバックサンプル本文（平均的な出力を入力）</label>
+                        <textarea id="p4_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください...">【評価】
+D1: 多職種理解 4点 - 各職種の役割を適切に理解できています
+D2: チーム連携 3点 - 連携の重要性を認識できています
+D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できています
+
+【優れている点】
+・チーム医療における各職種の専門性を観察できています
+・柔道整復師の強みと貢献可能な領域を具体的に考察できています
+・専門用語の重要性に気づき、コミュニケーションの質について考えられています
+
+【更なる向上のために】
+・具体的な症例において、柔道整復師がどのように介入できるか提案してみましょう
+・他職種との情報共有の方法（記録様式等）についても学びましょう
+・地域包括ケアにおける柔道整復師の役割についても考察してみましょう
+
+【次回への期待】
+・介護福祉施設やスポーツ現場での実習でも、同様の視点で観察し、考察を深めてください</textarea>
+                        <div class="token-display" id="p4_outputTokens">約 0 tokens（文字数: 0）</div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <strong>総評価件数:</strong> <span id="p4_totalEvals">0</span> 件
+                </div>
+            </div>
+            
+            <button class="calc-button" onclick="calculate()">💰 コスト試算を実行</button>
+            
+            <!-- 結果表示エリア -->
+            <div id="results" style="display: none;">
+                <div class="result-card">
+                    <div class="result-title">📊 年間コスト試算結果</div>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <div class="result-item-label">総コスト（USD）</div>
+                            <div class="result-item-value" id="totalUSD">$0.00</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-item-label">総コスト（円）</div>
+                            <div class="result-item-value" id="totalJPY">¥0</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-item-label">総評価件数</div>
+                            <div class="result-item-value" id="totalEvalsDisplay">0 件</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-item-label">評価1件あたり（円）</div>
+                            <div class="result-item-value" id="perEvaluation">¥0</div>
+                        </div>
+                    </div>
+                    
+                    <table class="breakdown-table" id="breakdownTable">
+                        <thead>
+                            <tr>
+                                <th>科目</th>
+                                <th>履修者数</th>
+                                <th>評価件数</th>
+                                <th>入力tokens<br>(平均/件)</th>
+                                <th>出力tokens<br>(平均/件)</th>
+                                <th>入力コスト<br>(USD)</th>
+                                <th>出力コスト<br>(USD)</th>
+                                <th>小計<br>(USD)</th>
+                                <th>小計<br>(円)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="breakdownBody">
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button class="download-button" onclick="downloadCSV()">📥 結果をCSVでダウンロード</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // モデル料金定義（$/1M tokens）
+        const modelPrices = {
+            'gpt-5.2': { input: 1.75, cached: 0.175, output: 14.00 },
+            'gpt-5-mini': { input: 0.25, cached: 0.025, output: 2.00 }
+        };
+        
+        // 日本語文字→tokenの概算変換係数
+        const CHAR_TO_TOKEN = 0.7;
+        
+        // グローバル変数（CSV出力用）
+        let calculationResults = null;
+        
+        function updateTokenDisplay() {
+            // システムプロンプト
+            const systemPromptText = document.getElementById('systemPromptText').value;
+            const systemPromptChars = systemPromptText.length;
+            const systemPromptTokens = Math.round(systemPromptChars * CHAR_TO_TOKEN);
+            document.getElementById('systemPromptTokens').textContent = 
+                `約 ${systemPromptTokens.toLocaleString()} tokens（文字数: ${systemPromptChars.toLocaleString()}）`;
+            
+            // ルーブリック
+            const rubricText = document.getElementById('rubricText').value;
+            const rubricChars = rubricText.length;
+            const rubricTokens = Math.round(rubricChars * CHAR_TO_TOKEN);
+            document.getElementById('rubricTokens').textContent = 
+                `約 ${rubricTokens.toLocaleString()} tokens（文字数: ${rubricChars.toLocaleString()}）`;
+            
+            // 各実習のトークン表示と評価件数
+            for (let i = 1; i <= 4; i++) {
+                const inputText = document.getElementById(`p${i}_inputText`).value;
+                const outputText = document.getElementById(`p${i}_outputText`).value;
+                const inputChars = inputText.length;
+                const outputChars = outputText.length;
+                const students = parseInt(document.getElementById(`p${i}_students`).value) || 0;
+                const days = parseInt(document.getElementById(`p${i}_days`).value) || 0;
+                const submissions = parseInt(document.getElementById(`p${i}_submissions`).value) || 0;
+                
+                const inputTokens = Math.round(inputChars * CHAR_TO_TOKEN);
+                const outputTokens = Math.round(outputChars * CHAR_TO_TOKEN);
+                const totalEvals = students * days * submissions;
+                
+                document.getElementById(`p${i}_inputTokens`).textContent = 
+                    `約 ${inputTokens.toLocaleString()} tokens（文字数: ${inputChars.toLocaleString()}）`;
+                document.getElementById(`p${i}_outputTokens`).textContent = 
+                    `約 ${outputTokens.toLocaleString()} tokens（文字数: ${outputChars.toLocaleString()}）`;
+                document.getElementById(`p${i}_totalEvals`).textContent = totalEvals.toLocaleString();
+            }
+        }
+        
+        function calculate() {
+            // 入力値取得
+            const model = document.getElementById('model').value;
+            const exchangeRate = parseFloat(document.getElementById('exchangeRate').value);
+            const cacheRate = parseFloat(document.getElementById('cacheRate').value) / 100;
+            
+            // 共通設定
+            const systemPromptText = document.getElementById('systemPromptText').value;
+            const rubricText = document.getElementById('rubricText').value;
+            const systemPromptTokens = Math.round(systemPromptText.length * CHAR_TO_TOKEN);
+            const rubricTokens = Math.round(rubricText.length * CHAR_TO_TOKEN);
+            const fixedInputTokens = systemPromptTokens + rubricTokens;
+            
+            // モデル料金
+            const prices = modelPrices[model];
+            
+            // 実習データ
+            const practices = [
+                { name: '臨床実習Ⅰ（見学型・導入）', id: 'p1' },
+                { name: '臨床実習Ⅱ（参加型・基礎）', id: 'p2' },
+                { name: '臨床実習Ⅲ（参加型・応用）', id: 'p3' },
+                { name: '臨地実習（Ⅳ）', id: 'p4' }
+            ];
+            
+            let totalCost = 0;
+            let totalEvaluations = 0;
+            const breakdowns = [];
+            
+            practices.forEach(practice => {
+                const students = parseInt(document.getElementById(`${practice.id}_students`).value) || 0;
+                const days = parseInt(document.getElementById(`${practice.id}_days`).value) || 0;
+                const submissions = parseInt(document.getElementById(`${practice.id}_submissions`).value) || 0;
+                const inputText = document.getElementById(`${practice.id}_inputText`).value;
+                const outputText = document.getElementById(`${practice.id}_outputText`).value;
+                
+                // 評価件数
+                const evaluations = students * days * submissions;
+                totalEvaluations += evaluations;
+                
+                // トークン計算
+                const studentNoteTokens = Math.round(inputText.length * CHAR_TO_TOKEN);
+                const totalInputTokensPerEval = fixedInputTokens + studentNoteTokens;
+                const outputTokensPerEval = Math.round(outputText.length * CHAR_TO_TOKEN);
+                
+                // キャッシュ適用
+                const cachedTokens = fixedInputTokens * cacheRate;
+                const nonCachedTokens = totalInputTokensPerEval - cachedTokens;
+                
+                // コスト計算（1評価あたり）
+                const inputCostPerEval = (nonCachedTokens * prices.input + cachedTokens * prices.cached) / 1000000;
+                const outputCostPerEval = (outputTokensPerEval * prices.output) / 1000000;
+                
+                // 総コスト
+                const totalInputCost = inputCostPerEval * evaluations;
+                const totalOutputCost = outputCostPerEval * evaluations;
+                const totalPracticeCost = totalInputCost + totalOutputCost;
+                
+                totalCost += totalPracticeCost;
+                
+                breakdowns.push({
+                    name: practice.name,
+                    students: students,
+                    evaluations: evaluations,
+                    inputTokens: totalInputTokensPerEval,
+                    outputTokens: outputTokensPerEval,
+                    inputChars: inputText.length,
+                    outputChars: outputText.length,
+                    inputCost: totalInputCost,
+                    outputCost: totalOutputCost,
+                    totalCost: totalPracticeCost,
+                    costJPY: totalPracticeCost * exchangeRate
+                });
+            });
+            
+            // 結果を保存（CSV出力用）
+            calculationResults = {
+                model: model,
+                exchangeRate: exchangeRate,
+                cacheRate: cacheRate,
+                systemPromptTokens: systemPromptTokens,
+                systemPromptChars: systemPromptText.length,
+                rubricTokens: rubricTokens,
+                rubricChars: rubricText.length,
+                fixedInputTokens: fixedInputTokens,
+                totalEvaluations: totalEvaluations,
+                totalCost: totalCost,
+                breakdowns: breakdowns,
+                prices: prices
+            };
+            
+            // 結果表示
+            document.getElementById('totalUSD').textContent = '$' + totalCost.toFixed(2);
+            document.getElementById('totalJPY').textContent = '¥' + Math.round(totalCost * exchangeRate).toLocaleString();
+            document.getElementById('totalEvalsDisplay').textContent = totalEvaluations.toLocaleString() + ' 件';
+            document.getElementById('perEvaluation').textContent = totalEvaluations > 0 ? 
+                '¥' + Math.round(totalCost * exchangeRate / totalEvaluations).toLocaleString() : '¥0';
+            
+            // 内訳テーブル
+            const tbody = document.getElementById('breakdownBody');
+            tbody.innerHTML = '';
+            
+            breakdowns.forEach(item => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.students.toLocaleString()}</td>
+                    <td>${item.evaluations.toLocaleString()}</td>
+                    <td>${item.inputTokens.toLocaleString()}</td>
+                    <td>${item.outputTokens.toLocaleString()}</td>
+                    <td>$${item.inputCost.toFixed(3)}</td>
+                    <td>$${item.outputCost.toFixed(3)}</td>
+                    <td>$${item.totalCost.toFixed(2)}</td>
+                    <td>¥${Math.round(item.costJPY).toLocaleString()}</td>
+                `;
+            });
+            
+            // 総合計行
+            const totalRow = tbody.insertRow();
+            totalRow.className = 'total-row';
+            totalRow.innerHTML = `
+                <td><strong>総合計</strong></td>
+                <td>-</td>
+                <td><strong>${totalEvaluations.toLocaleString()} 件</strong></td>
+                <td colspan="4"></td>
+                <td><strong>$${totalCost.toFixed(2)}</strong></td>
+                <td><strong>¥${Math.round(totalCost * exchangeRate).toLocaleString()}</strong></td>
+            `;
+            
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function downloadCSV() {
+            if (!calculationResults) {
+                alert('先にコスト試算を実行してください。');
+                return;
+            }
+            
+            const r = calculationResults;
+            let csv = '\uFEFF'; // BOM for Excel UTF-8
+            
+            // ヘッダー情報
+            csv += '臨床実習AI評価 OpenAI APIコスト試算結果\n';
+            csv += `作成日時,${new Date().toLocaleString('ja-JP')}\n`;
+            csv += '\n';
+            
+            // 基本設定
+            csv += '【基本設定】\n';
+            csv += `使用モデル,${r.model}\n`;
+            csv += `入力単価（$/1M tokens）,${r.prices.input}\n`;
+            csv += `キャッシュ入力単価（$/1M tokens）,${r.prices.cached}\n`;
+            csv += `出力単価（$/1M tokens）,${r.prices.output}\n`;
+            csv += `為替レート（円/ドル）,${r.exchangeRate}\n`;
+            csv += `キャッシュ利用率,${(r.cacheRate * 100).toFixed(1)}%\n`;
+            csv += '\n';
+            
+            // 共通設定
+            csv += '【評価システム共通設定】\n';
+            csv += `システムプロンプト文字数,${r.systemPromptChars}\n`;
+            csv += `システムプロンプトトークン数,${r.systemPromptTokens}\n`;
+            csv += `ルーブリック文字数,${r.rubricChars}\n`;
+            csv += `ルーブリックトークン数,${r.rubricTokens}\n`;
+            csv += `固定入力トークン合計,${r.fixedInputTokens}\n`;
+            csv += '\n';
+            
+            // 科目別詳細
+            csv += '【科目別詳細】\n';
+            csv += '科目名,履修者数,評価件数,入力文字数（平均/件）,入力tokens（平均/件）,出力文字数（平均/件）,出力tokens（平均/件）,入力コスト（USD）,出力コスト（USD）,小計（USD）,小計（円）\n';
+            
+            r.breakdowns.forEach(item => {
+                csv += `${item.name},${item.students},${item.evaluations},${item.inputChars},${item.inputTokens},${item.outputChars},${item.outputTokens},`;
+                csv += `${item.inputCost.toFixed(4)},${item.outputCost.toFixed(4)},${item.totalCost.toFixed(2)},${Math.round(item.costJPY)}\n`;
+            });
+            
+            csv += '\n';
+            
+            // 合計
+            csv += '【合計】\n';
+            csv += `総評価件数,${r.totalEvaluations}\n`;
+            csv += `総合計（USD）,${r.totalCost.toFixed(2)}\n`;
+            csv += `総合計（円）,${Math.round(r.totalCost * r.exchangeRate)}\n`;
+            csv += `評価1件あたり（円）,${Math.round(r.totalCost * r.exchangeRate / r.totalEvaluations)}\n`;
+            
+            // CSV ダウンロード
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `臨床実習AI評価_コスト試算_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // ページ読み込み時に初期化
+        window.addEventListener('load', function() {
+            updateTokenDisplay();
+            calculate();
+        });
+    </script>
+</body>
+</html>
