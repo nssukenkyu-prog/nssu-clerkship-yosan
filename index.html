@@ -278,16 +278,6 @@
             border-bottom: none;
         }
         
-        .note {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 8px;
-            font-size: 13px;
-            color: #856404;
-        }
-        
         .info-box {
             background: #d1ecf1;
             border-left: 4px solid #17a2b8;
@@ -295,6 +285,16 @@
             border-radius: 8px;
             font-size: 13px;
             color: #0c5460;
+            margin-top: 15px;
+        }
+        
+        .calculation-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #856404;
             margin-top: 15px;
         }
         
@@ -331,7 +331,7 @@
     <div class="container">
         <div class="header">
             <h1>🎓 臨床実習AI評価 OpenAI API コスト試算シミュレーター</h1>
-            <p>柔道整復師養成課程 デイリーノート自動評価システム 予算策定ツール ver 3.0</p>
+            <p>柔道整復師養成課程 デイリーノート自動評価システム 予算策定ツール ver 4.0</p>
         </div>
         
         <div class="content">
@@ -357,7 +357,6 @@
                         <tr>
                             <th>モデル</th>
                             <th>入力単価<br>($/1M tokens)</th>
-                            <th>キャッシュ入力<br>($/1M tokens)</th>
                             <th>出力単価<br>($/1M tokens)</th>
                         </tr>
                     </thead>
@@ -365,17 +364,24 @@
                         <tr>
                             <td><strong>gpt-5.2</strong></td>
                             <td>$1.75</td>
-                            <td>$0.175</td>
                             <td>$14.00</td>
                         </tr>
                         <tr>
                             <td><strong>gpt-5-mini</strong></td>
                             <td>$0.25</td>
-                            <td>$0.025</td>
                             <td>$2.00</td>
                         </tr>
                     </tbody>
                 </table>
+                
+                <div class="calculation-box">
+                    <strong>💡 コスト計算式:</strong><br>
+                    <code>総コスト = Σ(各実習の評価件数 × (入力tokens × 入力単価 + 出力tokens × 出力単価) / 1,000,000)</code><br><br>
+                    <strong>各実習の評価件数 =</strong> 履修者数 × 実習日数 × 1日あたり提出回数<br>
+                    <strong>入力tokens =</strong> (システムプロンプト文字数 + ルーブリック文字数 + デイリーノート文字数) × 0.7<br>
+                    <strong>出力tokens =</strong> AIフィードバック文字数 × 0.7<br>
+                    <strong>トークン換算係数:</strong> 日本語1文字 ≈ 0.7 tokens
+                </div>
             </div>
             
             <!-- 評価システム共通設定 -->
@@ -386,11 +392,7 @@
                     <h3>システムプロンプト</h3>
                     <div class="input-group">
                         <label>システムプロンプト本文</label>
-                        <textarea id="systemPromptText" oninput="updateTokenDisplay()" placeholder="システムプロンプトを入力してください...">あなたは柔道整復師養成課程の臨床実習指導者として、学生のデイリーノートを評価します。以下の観点から評価を行ってください。
-1. 臨床場面の観察力
-2. 安全・衛生管理の理解
-3. 記録の正確性
-4. 補助業務の遂行能力</textarea>
+                        <textarea id="systemPromptText" oninput="updateTokenDisplay()" placeholder="システムプロンプトを入力してください..."></textarea>
                         <div class="token-display" id="systemPromptTokens">約 0 tokens（文字数: 0）</div>
                     </div>
                 </div>
@@ -399,31 +401,9 @@
                     <h3>評価基準・ルーブリック</h3>
                     <div class="input-group">
                         <label>評価基準・ルーブリック本文</label>
-                        <textarea id="rubricText" oninput="updateTokenDisplay()" placeholder="評価基準・ルーブリックを入力してください...">【評価基準】
-0点: 未実施または重大な問題
-1点: 要改善（基準を大きく下回る）
-2点: 一部不足（基準を部分的に満たす）
-3点: 期待通り（基準を満たす）
-4点: 期待以上（基準を大きく上回る）
-
-【評価項目】
-A1: 観察力（現場の流れ/患者状況）
-A2: 安全・衛生（感染対策/物品/環境）
-A3: 記録の基本（匿名化・要点整理）
-A4: 補助行為（監督下での実施）</textarea>
+                        <textarea id="rubricText" oninput="updateTokenDisplay()" placeholder="評価基準・ルーブリックを入力してください..."></textarea>
                         <div class="token-display" id="rubricTokens">約 0 tokens（文字数: 0）</div>
                     </div>
-                </div>
-                
-                <div class="input-grid">
-                    <div class="input-group">
-                        <label>評価基準キャッシュ利用率（%）</label>
-                        <input type="number" id="cacheRate" value="80" min="0" max="100" step="5">
-                    </div>
-                </div>
-                
-                <div class="note">
-                    <strong>📌 キャッシュについて:</strong> 評価基準やルーブリックは各評価で共通のため、Prompt Cachingを活用すると大幅にコスト削減できます。2回目以降の評価ではキャッシュから読み込まれるため、入力コストが約90%削減されます。
                 </div>
             </div>
             
@@ -452,11 +432,7 @@ A4: 補助行為（監督下での実施）</textarea>
                     <h3>入力設定（学生デイリーノート）</h3>
                     <div class="input-group">
                         <label>デイリーノートサンプル本文（平均的な内容を入力）</label>
-                        <textarea id="p1_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください...">本日は初めて臨床実習施設を訪問しました。指導者の先生から施設の概要と基本的なルールについて説明を受けました。
-患者様への接し方、プライバシー保護の重要性、標準予防策について学びました。
-実際の施術場面を見学し、医療面接から検査、施術までの一連の流れを観察することができました。
-特に印象に残ったのは、患者様とのコミュニケーションの取り方です。指導者の先生は常に患者様の目線に立ち、丁寧な言葉遣いで説明されていました。
-明日からは受付業務や環境整備などの補助業務にも参加させていただく予定です。</textarea>
+                        <textarea id="p1_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください..."></textarea>
                         <div class="token-display" id="p1_inputTokens">約 0 tokens（文字数: 0）</div>
                     </div>
                 </div>
@@ -465,18 +441,7 @@ A4: 補助行為（監督下での実施）</textarea>
                     <h3>出力設定（AIフィードバック）</h3>
                     <div class="input-group">
                         <label>AIフィードバックサンプル本文（平均的な出力を入力）</label>
-                        <textarea id="p1_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください...">【評価】
-A1: 観察力 3点 - 施術の流れを適切に観察できています
-A2: 安全・衛生 3点 - 標準予防策の重要性を理解しています
-A3: 記録 3点 - 見学内容を適切に記録できています
-
-【良い点】
-・初日から積極的に学ぼうとする姿勢が見られます
-・患者様とのコミュニケーションに注目できています
-
-【改善点】
-・具体的な検査内容についても記録すると良いでしょう
-・次回は自分の課題を明確にしてみましょう</textarea>
+                        <textarea id="p1_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください..."></textarea>
                         <div class="token-display" id="p1_outputTokens">約 0 tokens（文字数: 0）</div>
                     </div>
                 </div>
@@ -511,16 +476,7 @@ A3: 記録 3点 - 見学内容を適切に記録できています
                     <h3>入力設定（学生デイリーノート）</h3>
                     <div class="input-group">
                         <label>デイリーノートサンプル本文（平均的な内容を入力）</label>
-                        <textarea id="p2_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください...">本日は指導者の監督下で、初めて患者様に対してROM測定を実施しました。
-患者様は右肩関節の疼痛を訴えており、屈曲・外転の可動域制限が認められました。
-測定結果：屈曲120度、外転90度、外旋30度
-指導者の先生からは、測定時の患者様への声かけと、ゼロポジションの確認について指導を受けました。
-また、SOAP形式での記録方法についても学びました。
-S: 右肩の痛みが続いている
-O: 屈曲120度、外転90度、圧痛あり
-A: 肩関節周囲炎の疑い
-P: 温熱療法と可動域訓練を継続
-明日は物理療法の補助業務に参加する予定です。</textarea>
+                        <textarea id="p2_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください..."></textarea>
                         <div class="token-display" id="p2_inputTokens">約 0 tokens（文字数: 0）</div>
                     </div>
                 </div>
@@ -529,20 +485,7 @@ P: 温熱療法と可動域訓練を継続
                     <h3>出力設定（AIフィードバック）</h3>
                     <div class="input-group">
                         <label>AIフィードバックサンプル本文（平均的な出力を入力）</label>
-                        <textarea id="p2_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください...">【評価】
-B1: 基本検査の実施 4点 - ROM測定を正確に実施できています
-B2: 情報の記録 4点 - SOAP形式で適切に記録できています
-B3: 患者対応 3点 - 患者様への配慮が見られます
-
-【優れている点】
-・具体的な測定値を正確に記録できています
-・SOAP形式を理解し、適切に活用できています
-・指導内容を素直に受け止め、改善しようとしています
-
-【更なる向上のために】
-・測定時の患者様の表情や反応も記録すると良いでしょう
-・可動域制限の原因について考察を加えてみましょう
-・次回は徒手筋力検査にも挑戦してみましょう</textarea>
+                        <textarea id="p2_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください..."></textarea>
                         <div class="token-display" id="p2_outputTokens">約 0 tokens（文字数: 0）</div>
                     </div>
                 </div>
@@ -577,37 +520,7 @@ B3: 患者対応 3点 - 患者様への配慮が見られます
                     <h3>入力設定（学生デイリーノート）</h3>
                     <div class="input-group">
                         <label>デイリーノートサンプル本文（平均的な内容を入力）</label>
-                        <textarea id="p3_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください...">本日は新患の患者様に対して、医療面接から検査、施術計画の立案まで一連のプロセスを実践しました。
-
-【症例概要】
-20代男性、バスケットボール中に右足関節を内反捻挫
-受傷後2日目、腫脹・圧痛・可動域制限あり
-
-【医療面接】
-受傷機転、疼痛の程度、既往歴等を聴取
-レッドフラッグのスクリーニングを実施→陰性
-
-【検査所見】
-視診：外果周囲の腫脹、皮下出血あり
-触診：前距腓靱帯部に圧痛++
-ROM：背屈制限あり（健側15度、患側5度）
-特殊検査：前方引き出しテスト陽性
-
-【超音波観察】
-前距腓靱帯に低エコー域を認め、部分断裂が疑われる
-
-【臨床推論】
-右足関節内反捻挫（前距腓靱帯損傷Ⅱ度）
-骨折は否定的
-
-【施術計画】
-1. 固定：テーピング固定
-2. 物理療法：アイシング、超音波治療
-3. 後療法：段階的な可動域訓練
-4. 経過観察：1週間後に再評価
-
-指導者の先生からは、患者様への説明が丁寧であったと評価していただきました。
-一方で、施術計画について、より具体的な期間設定と目標設定が必要とのご指摘を受けました。</textarea>
+                        <textarea id="p3_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください..."></textarea>
                         <div class="token-display" id="p3_inputTokens">約 0 tokens（文字数: 0）</div>
                     </div>
                 </div>
@@ -616,27 +529,7 @@ ROM：背屈制限あり（健側15度、患側5度）
                     <h3>出力設定（AIフィードバック）</h3>
                     <div class="input-group">
                         <label>AIフィードバックサンプル本文（平均的な出力を入力）</label>
-                        <textarea id="p3_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください...">【評価】
-C1: 医療面接の実践 4点 - 必要な情報を適切に聴取できています
-C2: 超音波観察の活用 4点 - 超音波所見を適切に評価できています
-C3: 臨床推論と判断 4点 - 論理的に鑑別診断を行えています
-C4: 施術計画の立案 3点 - 基本的な計画は立案できていますが、より具体性が必要です
-
-【優れている点】
-・系統的な問診と検査を実施できています
-・レッドフラッグのスクリーニングを適切に行えています
-・超音波所見と身体所見を統合して評価できています
-・臨床推論のプロセスが論理的で明確です
-
-【更なる向上のために】
-・施術計画に具体的な期間（2週間、4週間等）と機能目標を設定しましょう
-・患者様の競技復帰時期についても考慮した計画が必要です
-・経過不良時の対応（医師紹介の基準等）も計画に含めましょう
-・ホームエクササイズの具体的な内容も記載すると良いでしょう
-
-【次回への課題】
-・より複雑な症例に対しても同様のプロセスで対応できるよう練習しましょう
-・鑑別診断の幅を広げるため、類似症例の文献を調べてみましょう</textarea>
+                        <textarea id="p3_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください..."></textarea>
                         <div class="token-display" id="p3_outputTokens">約 0 tokens（文字数: 0）</div>
                     </div>
                 </div>
@@ -671,27 +564,7 @@ C4: 施術計画の立案 3点 - 基本的な計画は立案できています�
                     <h3>入力設定（学生デイリーノート）</h3>
                     <div class="input-group">
                         <label>デイリーノートサンプル本文（平均的な内容を入力）</label>
-                        <textarea id="p4_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください...">本日は整形外科クリニックでの臨地実習でした。
-医師、看護師、理学療法士の先生方と共に、チーム医療の現場を体験しました。
-
-【参加した業務】
-・外来診療の見学
-・リハビリテーション室での機能訓練観察
-・カンファレンスへの参加
-
-【学んだこと】
-1. 多職種連携の重要性
-医師の診断に基づき、理学療法士がリハビリプログラムを立案し、看護師が患者様の状態を継続的に観察するという、それぞれの専門性を活かした連携を見ることができました。
-
-2. 柔道整復師の役割
-カンファレンスで、柔道整復師が運動器疾患の保存療法において重要な役割を担えることを実感しました。
-特に、固定技術や物理療法の知識は、チーム医療の中でも貢献できる領域だと感じました。
-
-3. 専門用語の重要性
-各職種が共通の医学用語を使用することで、円滑なコミュニケーションが図られていました。
-
-【今後の課題】
-他職種の専門性をより深く理解し、柔道整復師としてどのように貢献できるかを考えていきたいです。</textarea>
+                        <textarea id="p4_inputText" oninput="updateTokenDisplay()" placeholder="学生が提出する平均的なデイリーノートの内容を入力してください..."></textarea>
                         <div class="token-display" id="p4_inputTokens">約 0 tokens（文字数: 0）</div>
                     </div>
                 </div>
@@ -700,23 +573,7 @@ C4: 施術計画の立案 3点 - 基本的な計画は立案できています�
                     <h3>出力設定（AIフィードバック）</h3>
                     <div class="input-group">
                         <label>AIフィードバックサンプル本文（平均的な出力を入力）</label>
-                        <textarea id="p4_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください...">【評価】
-D1: 多職種理解 4点 - 各職種の役割を適切に理解できています
-D2: チーム連携 3点 - 連携の重要性を認識できています
-D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できています
-
-【優れている点】
-・チーム医療における各職種の専門性を観察できています
-・柔道整復師の強みと貢献可能な領域を具体的に考察できています
-・専門用語の重要性に気づき、コミュニケーションの質について考えられています
-
-【更なる向上のために】
-・具体的な症例において、柔道整復師がどのように介入できるか提案してみましょう
-・他職種との情報共有の方法（記録様式等）についても学びましょう
-・地域包括ケアにおける柔道整復師の役割についても考察してみましょう
-
-【次回への期待】
-・介護福祉施設やスポーツ現場での実習でも、同様の視点で観察し、考察を深めてください</textarea>
+                        <textarea id="p4_outputText" oninput="updateTokenDisplay()" placeholder="AIが出力する平均的なフィードバックの内容を入力してください..."></textarea>
                         <div class="token-display" id="p4_outputTokens">約 0 tokens（文字数: 0）</div>
                     </div>
                 </div>
@@ -747,7 +604,7 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
                         </div>
                         <div class="result-item">
                             <div class="result-item-label">評価1件あたり（円）</div>
-                            <div class="result-item-value" id="perEvaluation">¥0</div>
+                            <div class="result-item-value" id="perEvaluation">¥0.00</div>
                         </div>
                     </div>
                     
@@ -778,8 +635,8 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
     <script>
         // モデル料金定義（$/1M tokens）
         const modelPrices = {
-            'gpt-5.2': { input: 1.75, cached: 0.175, output: 14.00 },
-            'gpt-5-mini': { input: 0.25, cached: 0.025, output: 2.00 }
+            'gpt-5.2': { input: 1.75, output: 14.00 },
+            'gpt-5-mini': { input: 0.25, output: 2.00 }
         };
         
         // 日本語文字→tokenの概算変換係数
@@ -829,7 +686,6 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
             // 入力値取得
             const model = document.getElementById('model').value;
             const exchangeRate = parseFloat(document.getElementById('exchangeRate').value);
-            const cacheRate = parseFloat(document.getElementById('cacheRate').value) / 100;
             
             // 共通設定
             const systemPromptText = document.getElementById('systemPromptText').value;
@@ -869,12 +725,8 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
                 const totalInputTokensPerEval = fixedInputTokens + studentNoteTokens;
                 const outputTokensPerEval = Math.round(outputText.length * CHAR_TO_TOKEN);
                 
-                // キャッシュ適用
-                const cachedTokens = fixedInputTokens * cacheRate;
-                const nonCachedTokens = totalInputTokensPerEval - cachedTokens;
-                
                 // コスト計算（1評価あたり）
-                const inputCostPerEval = (nonCachedTokens * prices.input + cachedTokens * prices.cached) / 1000000;
+                const inputCostPerEval = (totalInputTokensPerEval * prices.input) / 1000000;
                 const outputCostPerEval = (outputTokensPerEval * prices.output) / 1000000;
                 
                 // 総コスト
@@ -903,7 +755,6 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
             calculationResults = {
                 model: model,
                 exchangeRate: exchangeRate,
-                cacheRate: cacheRate,
                 systemPromptTokens: systemPromptTokens,
                 systemPromptChars: systemPromptText.length,
                 rubricTokens: rubricTokens,
@@ -920,7 +771,7 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
             document.getElementById('totalJPY').textContent = '¥' + Math.round(totalCost * exchangeRate).toLocaleString();
             document.getElementById('totalEvalsDisplay').textContent = totalEvaluations.toLocaleString() + ' 件';
             document.getElementById('perEvaluation').textContent = totalEvaluations > 0 ? 
-                '¥' + Math.round(totalCost * exchangeRate / totalEvaluations).toLocaleString() : '¥0';
+                '¥' + (totalCost * exchangeRate / totalEvaluations).toFixed(2) : '¥0.00';
             
             // 内訳テーブル
             const tbody = document.getElementById('breakdownBody');
@@ -934,8 +785,8 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
                     <td>${item.evaluations.toLocaleString()}</td>
                     <td>${item.inputTokens.toLocaleString()}</td>
                     <td>${item.outputTokens.toLocaleString()}</td>
-                    <td>$${item.inputCost.toFixed(3)}</td>
-                    <td>$${item.outputCost.toFixed(3)}</td>
+                    <td>$${item.inputCost.toFixed(4)}</td>
+                    <td>$${item.outputCost.toFixed(4)}</td>
                     <td>$${item.totalCost.toFixed(2)}</td>
                     <td>¥${Math.round(item.costJPY).toLocaleString()}</td>
                 `;
@@ -975,10 +826,8 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
             csv += '【基本設定】\n';
             csv += `使用モデル,${r.model}\n`;
             csv += `入力単価（$/1M tokens）,${r.prices.input}\n`;
-            csv += `キャッシュ入力単価（$/1M tokens）,${r.prices.cached}\n`;
             csv += `出力単価（$/1M tokens）,${r.prices.output}\n`;
             csv += `為替レート（円/ドル）,${r.exchangeRate}\n`;
-            csv += `キャッシュ利用率,${(r.cacheRate * 100).toFixed(1)}%\n`;
             csv += '\n';
             
             // 共通設定
@@ -1006,7 +855,7 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
             csv += `総評価件数,${r.totalEvaluations}\n`;
             csv += `総合計（USD）,${r.totalCost.toFixed(2)}\n`;
             csv += `総合計（円）,${Math.round(r.totalCost * r.exchangeRate)}\n`;
-            csv += `評価1件あたり（円）,${Math.round(r.totalCost * r.exchangeRate / r.totalEvaluations)}\n`;
+            csv += `評価1件あたり（円）,${(r.totalCost * r.exchangeRate / r.totalEvaluations).toFixed(2)}\n`;
             
             // CSV ダウンロード
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1025,7 +874,6 @@ D3: 専門性と貢献 4点 - 柔道整復師の貢献領域を考察できて�
         // ページ読み込み時に初期化
         window.addEventListener('load', function() {
             updateTokenDisplay();
-            calculate();
         });
     </script>
 </body>
