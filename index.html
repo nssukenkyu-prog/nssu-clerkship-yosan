@@ -349,6 +349,7 @@
                         <label>使用モデル</label>
                         <select id="model" onchange="calculate()">
                             <option value="gpt-5.2">gpt-5.2</option>
+                            <option value="gpt-5.2-pro">gpt-5.2-pro</option>
                             <option value="gpt-5-mini" selected>gpt-5-mini</option>
                         </select>
                     </div>
@@ -368,6 +369,11 @@
                     </thead>
                     <tbody>
                         <tr>
+                            <td><strong>gpt-5.2-pro</strong></td>
+                            <td>$21.00</td>
+                            <td>$168.00</td>
+                        </tr>
+                        <tr>
                             <td><strong>gpt-5.2</strong></td>
                             <td>$1.75</td>
                             <td>$14.00</td>
@@ -384,9 +390,9 @@
                     <strong>💡 コスト計算式:</strong><br>
                     <code>総コスト = Σ(各実習の評価件数 × (入力tokens × 入力単価 + 出力tokens × 出力単価) / 1,000,000)</code><br><br>
                     <strong>各実習の評価件数 =</strong> 履修者数 × 実習日数 × 1日あたり提出回数<br>
-                    <strong>入力tokens =</strong> (システムプロンプト文字数 + ルーブリック文字数 + デイリーノート文字数) × 0.7<br>
-                    <strong>出力tokens =</strong> AIフィードバック文字数 × 0.7<br>
-                    <strong>トークン換算係数:</strong> 日本語1文字 ≈ 0.7 tokens
+                    <strong>入力tokens =</strong> (システムプロンプト文字数 + ルーブリック文字数 + デイリーノート文字数) × 1.2<br>
+                    <strong>出力tokens =</strong> AIフィードバック文字数 × 1.2<br>
+                    <strong>トークン換算係数:</strong> 日本語1文字 ≈ 1.2 tokens
                 </div>
             </div>
 
@@ -677,13 +683,16 @@
     <script>
         // モデル料金定義（$/1M tokens）
         // cache単価を追加
+        // モデル料金定義（$/1M tokens）
+        // cache単価を追加
         const modelPrices = {
+            'gpt-5.2-pro': { input: 21.00, params: 'gpt-5.2-pro', cache: 21.00, output: 168.00 },
             'gpt-5.2': { input: 1.75, params: 'gpt-5.2', cache: 0.175, output: 14.00 },
             'gpt-5-mini': { input: 0.25, params: 'gpt-5-mini', cache: 0.025, output: 2.00 }
         };
 
         // 日本語文字→tokenの概算変換係数
-        const CHAR_TO_TOKEN = 0.7;
+        const CHAR_TO_TOKEN = 1.2;
 
         // グローバル変数（CSV出力用）
         let calculationResults = null;
@@ -846,7 +855,11 @@
                 totalEvaluations: totalEvaluations,
                 totalCost: totalCost,
                 breakdowns: breakdowns,
-                prices: prices
+                totalEvaluations: totalEvaluations,
+                totalCost: totalCost,
+                breakdowns: breakdowns,
+                prices: prices,
+                charToToken: CHAR_TO_TOKEN // CSV用に追加
             };
 
             // 結果表示
@@ -912,6 +925,7 @@
             csv += `出力単価（$/1M tokens）,${r.prices.output}\n`;
             csv += `為替レート（円/ドル）,${r.exchangeRate}\n`;
             csv += `Prompt Caching利用率（%）,${r.cacheRate}\n`;
+            csv += `文字→トークン換算係数,${r.charToToken}\n`;
             csv += '\n';
 
             // 共通設定
